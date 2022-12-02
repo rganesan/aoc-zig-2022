@@ -7,12 +7,6 @@ const RPS = enum(u8) {
     Scissors = 3,
 };
 
-const Result = enum {
-    Lose,
-    Draw,
-    Win,
-};
-
 fn get_play(char: u8) !RPS {
     return switch (char) {
         'A', 'X' => .Rock,
@@ -33,22 +27,22 @@ fn part1(reader: anytype) !u32 {
         score += @enumToInt(me);
         if (me == him) { // draw
             score += 3;
-        } else if (me == .Rock) {
-            if (him == .Scissors) { // win
-                score += 6;
-            }
-        } else if (me == .Paper) {
-            if (him == .Rock) { // win
-                score += 6;
-            }
-        } else { // scissors
-            if (him == .Paper) {
-                score += 6;
-            }
+        } else if (Beats[@enumToInt(him)] == me) {
+            // my shape beats other elf
+            score += 6;
+        } else {
+            // I lose
+            score += 0;
         }
     }
     return score;
 }
+
+const Result = enum {
+    Lose,
+    Draw,
+    Win,
+};
 
 fn get_result(char: u8) !Result {
     return switch (char) {
@@ -58,6 +52,12 @@ fn get_result(char: u8) !Result {
         else => unreachable,
     };
 }
+
+// index into this array to get what beats the indexed item
+const Beats = [_]RPS{ undefined, RPS.Paper, RPS.Scissors, RPS.Rock };
+
+// index into this array to get what loses to the indexed item
+const Loses = [_]RPS{ undefined, RPS.Scissors, RPS.Rock, RPS.Paper };
 
 fn part2(reader: anytype) !u32 {
     var buf: [80]u8 = undefined;
@@ -73,11 +73,7 @@ fn part2(reader: anytype) !u32 {
         switch (result) {
             .Lose => {
                 score += 0;
-                me = switch (him) {
-                    .Rock => RPS.Scissors,
-                    .Paper => RPS.Rock,
-                    .Scissors => RPS.Paper,
-                };
+                me = Loses[@enumToInt(him)];
             },
             .Draw => {
                 score += 3;
@@ -85,11 +81,7 @@ fn part2(reader: anytype) !u32 {
             },
             .Win => {
                 score += 6;
-                me = switch (him) {
-                    .Rock => RPS.Paper,
-                    .Paper => RPS.Scissors,
-                    .Scissors => RPS.Rock,
-                };
+                me = Beats[@enumToInt(him)];
             },
         }
         score += @enumToInt(me);
@@ -101,7 +93,6 @@ fn part2(reader: anytype) !u32 {
 pub fn main() !void {
     var buf: [16384]u8 = undefined;
     const len = try std.io.getStdIn().reader().read(buf[0..]);
-
     const input = buf[0..len];
 
     var part1_fis = std.io.fixedBufferStream(input);
