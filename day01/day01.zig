@@ -1,8 +1,7 @@
 const std = @import("std");
+const expect = std.testing.expect;
 
-var best3 = [_]u64{ 0, 0, 0 };
-
-pub fn maybe_update_best3(total: u64) void {
+fn maybe_update_best3(best3: []u32, total: u32) void {
     // Potentially insert total into best3 in sorted order
     if (total > best3[0]) {
         best3[2] = best3[1];
@@ -16,25 +15,62 @@ pub fn maybe_update_best3(total: u64) void {
     }
 }
 
-pub fn main() !void {
-    var stdin = std.io.bufferedReader(std.io.getStdIn().reader());
-    var stdout = std.io.bufferedWriter(std.io.getStdOut().writer());
+fn parse_and_get_best3(reader: anytype) ![3]u32 {
+    var best3 = [_]u32{ 0, 0, 0 };
 
-    var cur_total: u64 = 0;
+    var cur_total: u32 = 0;
     var buf: [80]u8 = undefined;
-    while (try stdin.reader().readUntilDelimiterOrEof(buf[0..], '\n')) |line| {
+    while (try reader.readUntilDelimiterOrEof(buf[0..], '\n')) |line| {
         if (line.len > 0) {
-            const calories = try std.fmt.parseInt(u64, line, 10);
+            const calories = try std.fmt.parseUnsigned(u32, line, 10);
             cur_total += calories;
         } else {
-            maybe_update_best3(cur_total);
+            maybe_update_best3(&best3, cur_total);
             cur_total = 0;
         }
     }
+
     // catch last record before EOF
     if (cur_total != 0) {
-        maybe_update_best3(cur_total);
+        maybe_update_best3(&best3, cur_total);
     }
-    try std.fmt.format(stdout.writer(), "{} + {} + {} = {}\n", .{ best3[0], best3[1], best3[2], best3[0] + best3[1] + best3[2] });
-    try stdout.flush();
+    return best3;
+}
+
+pub fn main() !void {
+    var buf: [16384]u8 = undefined;
+    const len = try std.io.getStdIn().reader().read(buf[0..]);
+
+    const input = buf[0..len];
+
+    var fis = std.io.fixedBufferStream(input);
+    const best3 = try parse_and_get_best3(fis.reader());
+
+    std.debug.print("{} + {} + {} = {}\n", .{ //
+        best3[0], best3[1], best3[2], best3[0] + best3[1] + best3[2],
+    });
+}
+
+test "sample" {
+    const input =
+        \\1000
+        \\2000
+        \\3000
+        \\
+        \\4000
+        \\
+        \\5000
+        \\6000
+        \\
+        \\7000
+        \\8000
+        \\9000
+        \\
+        \\10000
+    ;
+    var fis = std.io.fixedBufferStream(input);
+    const best3 = try parse_and_get_best3(fis.reader());
+    try expect(best3[0] == 24000);
+    try expect(best3[1] == 11000);
+    try expect(best3[2] == 10000);
 }
