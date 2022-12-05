@@ -3,8 +3,6 @@ const assert = std.debug.assert;
 
 const MAX_INPUT = 16384;
 
-const MAX_STACKS = 10;
-
 // Use an array list for a stack of crates so we can easily push and pop items. The
 // input numbers the stacks from 1 but the code use 0 based indexing.
 const Stack = std.ArrayList(u8);
@@ -13,30 +11,26 @@ const Stack = std.ArrayList(u8);
 fn get_TOS(allocator: std.mem.Allocator, input: []const u8, lifo: bool) ![]const u8 {
     var iter = std.mem.split(u8, input, "\n");
 
-    // Preinitialize MAX_STACKS stacks. This makes the code less cluttered
-    var stacks: [MAX_STACKS]Stack = undefined;
-    var s: u32 = 0;
-    while (s < MAX_STACKS) {
-        stacks[s] = Stack.init(allocator);
-        s += 1;
-    }
+    var stacks = std.ArrayList(Stack).init(allocator);
+    defer stacks.deinit();
 
     // parse stacks of crates
-    var nstacks: u32 = 0;
     while (iter.next()) |line| {
         if (line.len == 0) break;
-        if (line[1] == '1') continue; // stack numbers; TODO: validate this
-        s = 0;
+        if (line[1] == '1') continue; // stack numbers line; TODO: validate this
+        var s: u32 = 0;
         var i: u32 = 0;
         while (i < line.len) {
+            if (stacks.items.len <= s) {
+                try stacks.append(Stack.init(allocator));
+            }
             if (line[i] == '[') {
-                try stacks[s].insert(0, line[i + 1]);
+                try stacks.items[s].insert(0, line[i + 1]);
             }
             i += 4; // need to hard-code to handle completed stacks
             s += 1;
         }
-        if (nstacks != 0) assert(nstacks == s);
-        nstacks = s;
+        assert(s == stacks.items.len);
     }
 
     // now parse moves
@@ -51,24 +45,21 @@ fn get_TOS(allocator: std.mem.Allocator, input: []const u8, lifo: bool) ![]const
         const to = try std.fmt.parseUnsigned(u8, moves.next().?, 10) - 1;
 
         // save position in "to" stack for ordered insert
-        var pos = stacks[to].items.len;
+        var pos = stacks.items[to].items.len;
         while (n > 0) {
-            const crate = stacks[from].pop();
+            const crate = stacks.items[from].pop();
             if (lifo) {
-                try stacks[to].append(crate);
+                try stacks.items[to].append(crate);
             } else {
-                try stacks[to].insert(pos, crate);
+                try stacks.items[to].insert(pos, crate);
             }
             n -= 1;
         }
     }
 
-    var tos = Stack.init(allocator);
+    var tos = std.ArrayList(u8).init(allocator);
     defer tos.deinit();
-    for (stacks) |stack, i| {
-        if (i == nstacks) {
-            break;
-        }
+    for (stacks.items) |stack| {
         try tos.append(stack.items[stack.items.len - 1]);
         stack.deinit(); // free the stack
     }
@@ -78,7 +69,7 @@ fn get_TOS(allocator: std.mem.Allocator, input: []const u8, lifo: bool) ![]const
 
 pub fn main() !void {
     var buf: [MAX_INPUT]u8 = undefined;
-    const len = try std.io.getStdIn().reader().read(&buf);
+    const len = try std.io.getStdIn().read(&buf);
     const input = buf[0..len];
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
