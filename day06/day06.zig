@@ -5,26 +5,21 @@ const MAX_INPUT = 16384;
 
 fn is_marker(candidate: []const u8) bool {
     // std.debug.print("m: {s}\n", .{m});
-    var freq = [1]u8{0} ** 256;
+    var freq = [1]bool{false} ** 256;
     for (candidate) |c| {
-        freq[c] = 1;
-    }
-    var sum: u32 = 0;
-    for (freq) |f| {
-        sum += f;
+        freq[c] = if (freq[c]) return false else true;
     }
     // std.debug.print("candidate: {s} freq: {}\n", .{ candidate, sum });
-    return sum == candidate.len;
+    return true;
 }
 
 fn get_som_pos(input: []const u8, len: u32) u32 {
     var i: u32 = 0;
-    while (i < input.len - 3) {
+    while (i < input.len - 3) : (i += 1) {
         if (is_marker(input[i .. i + len])) {
             // std.debug.print("input: {s} som: {}\n", .{ input[i .. i + len], i + len });
             return i + len;
         }
-        i += 1;
     }
     return 0;
 }
