@@ -153,7 +153,7 @@ pub fn main() !void {
 
     var root = try parse_directory_tree(allocator, input);
     std.debug.print("Total < {}: {}\n", .{ MAX_DIR_SIZE, directory_total(root, MAX_DIR_SIZE) });
-    std.debug.print("Best dir size to free: {}\n", .{smallest_to_free(root, DISK_SIZE, 30_00_000)});
+    std.debug.print("Best dir size to free: {}\n", .{smallest_to_free(root, DISK_SIZE, SPACE_NEEDED)});
 }
 
 const expect = std.testing.expect;
