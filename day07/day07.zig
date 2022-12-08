@@ -6,12 +6,6 @@ const MAX_DIR_SIZE = 100_000;
 const DISK_SIZE = 70_000_000;
 const SPACE_NEEDED = 30_000_000;
 
-fn strdup(allocator: std.mem.Allocator, s: []const u8) ![]u8 {
-    var copy = try allocator.alloc(u8, s.len);
-    std.mem.copy(u8, copy, s);
-    return copy;
-}
-
 const File = struct {
     const Self = @This();
 
@@ -65,7 +59,7 @@ fn parse_directory_tree(allocator: std.mem.Allocator, input: []const u8) !*Dir {
     var cur = root;
     var in_listing: bool = false;
 
-    var dir_queue = std.ArrayList(*Dir).init(allocator);
+    var dir_stack = std.ArrayList(*Dir).init(allocator);
     var input_iter = std.mem.tokenize(u8, input, "\n");
     while (input_iter.next()) |line| {
         // std.debug.print("line: {s}\n", .{line});
@@ -77,11 +71,11 @@ fn parse_directory_tree(allocator: std.mem.Allocator, input: []const u8) !*Dir {
             if (std.mem.eql(u8, cmd, "cd")) {
                 const dirname = iter.next().?;
                 if (std.mem.eql(u8, dirname, "..")) {
-                    cur = dir_queue.pop();
+                    cur = dir_stack.pop();
                 } else {
                     for (cur.dirs.items) |d, i| {
                         if (std.mem.eql(u8, d.name, dirname)) {
-                            try dir_queue.append(cur);
+                            try dir_stack.append(cur);
                             cur = &cur.dirs.items[i];
                             break;
                         }
