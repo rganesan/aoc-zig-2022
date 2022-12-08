@@ -4,12 +4,10 @@ const assert = std.debug.assert;
 const MAX_INPUT = 16384;
 
 fn is_marker(candidate: []const u8) bool {
-    // std.debug.print("m: {s}\n", .{m});
     var freq = [1]bool{false} ** 256;
     for (candidate) |c| {
         freq[c] = if (freq[c]) return false else true;
     }
-    // std.debug.print("candidate: {s} freq: {}\n", .{ candidate, sum });
     return true;
 }
 
@@ -17,7 +15,6 @@ fn get_som_pos(input: []const u8, len: u32) u32 {
     var i: u32 = 0;
     while (i < input.len - 3) : (i += 1) {
         if (is_marker(input[i .. i + len])) {
-            // std.debug.print("input: {s} som: {}\n", .{ input[i .. i + len], i + len });
             return i + len;
         }
     }
